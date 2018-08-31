@@ -1,6 +1,5 @@
 import * as functions from 'firebase-functions';
-import {DateTime} from "actions-on-google";
-
+import * as moment from 'moment';
 // // Start writing Firebase Functions
 // // https://firebase.google.com/docs/functions/typescript
 //
@@ -17,45 +16,41 @@ const {
     NewSurfaceOptions,
     Suggestions
 } = require('actions-on-google');
-const TK = require('timekit-sdk');
+const timekit = require('timekit-sdk');
 const app = dialogflow({debug: true});
-TK.configure({appKey: 'test_api_key_7WiCf8KasDE6TpNk0MtXCY8xfdABO2pb'});
+timekit.configure({appKey: 'test_api_key_7WiCf8KasDE6TpNk0MtXCY8xfdABO2pb'})
 
 app.intent('Default Welcome Intent', (conv) => {
-    return conv.ask('Welcome to Barcelona Barber! What can I do for you?');
+    return conv.ask('Welcome to Barcelona Barber! What can I do for you?')
 });
 
 
 app.intent('Request an appointment', async (conv, {appointmentType, appointmentDate, appointmentTime}) => {
 
-    console.log(appointmentDate);
-    console.log(appointmentTime);
-
+    console.log(appointmentDate)
+    console.log(appointmentTime)
     if (conv.body.queryResult.allRequiredParamsPresent) {
-
-        /*conv.add(`The appointment type is: ${appointmentType} \n` +
-            `The appointment date is: ${appointmentDate} \n` +
-            `The appointment time is: ${appointmentTime}`);*/
-
-        //return conv.ask('All parameters are filled in. Nothing more to say, your honor.')
         if (appointmentType.toLowerCase() === "haircut and beard") {
-            const response = await TK.fetchAvailability({
+            const response = await timekit.fetchAvailability({
                 mode: "roundrobin_random",
                 resources: [
                     "72e24237-9992-4888-ad66-721e8d3d1f98",
                     "8563d819-2991-4f52-b2db-f450f143836f"
                 ],
                 length: "1 hours",
-                from: "2018-08-31T12:00:00+00:00",
-                to: "2018-08-31T16:00:00+00:00",
+                from: appointmentDate,
+                to: "2018-08-31T16:00:00+02:00",
                 timeslot_increments: "15 minutes",
                 output_timezone: "Europe/Madrid"
             });
-            console.log(`el primere start es: ${response.data[0].start}`);
-            console.log(`el nombre es ${response.data[0].resources[0].name}`);
-            const dateUnix = Date.parse(response.data[0].start);
+
+            const data: Array<any> = response.data;
+            console.log(`el primere start es: ${data[0].start}`);
+            console.log(`el nombre es ${data[0].resources[0].name}`);
+            const dateUnix = Date.parse(data[0].start);
+            const inputDateString: string = appointmentDate;
             const date = new Date(dateUnix);
-            return conv.ask(`There is an appointment available with ${response.data[0].resources[0].name} at ${date.getTime()}. Is that okay for you?`);
+            return conv.ask(`There is an appointment available with ${response.data[0].resources[0].name} at ${date.getHours()} hours and ${date.getMinutes()}. Is that okay for you?`);
         } else if (appointmentType.toLowerCase() === "haircut") {
             return conv.close('Sorry, bookings for haircut are still not implemented. Please try again later');
         } else {

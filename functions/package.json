@@ -19,7 +19,8 @@
     "firebase-functions": "^2.0.5",
     "request": "^2.88.0",
     "request-promise": "^4.2.2",
-    "timekit-sdk": "^1.17.1"
+    "timekit-sdk": "^1.17.1",
+    "moment": "^2.22.2"
   },
   "devDependencies": {
     "tslint": "~5.8.0",
