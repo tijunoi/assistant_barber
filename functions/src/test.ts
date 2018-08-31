@@ -11,4 +11,4 @@ parsedDate.hour(parsedTime.hour())
 parsedDate.minute(parsedTime.minute())
 
 
-console.log(parsedDate.format("Do MMM"))
+console.log(parsedDate.format("Do of MMMM"))

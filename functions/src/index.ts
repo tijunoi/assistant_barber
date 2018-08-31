@@ -1,5 +1,6 @@
 import * as functions from 'firebase-functions';
 import * as moment from 'moment';
+import {SimpleResponse, Table} from "actions-on-google"
 // // Start writing Firebase Functions
 // // https://firebase.google.com/docs/functions/typescript
 //
@@ -55,7 +56,37 @@ app.intent('Request an appointment', async (conv, {appointmentType, appointmentD
             const data: Array<any> = response.data;
             const startDate = moment.parseZone(data[0].start)
 
-            return conv.ask(`<speak>There is an appointment available with ${response.data[0].resources[0].name} <say-as interpret-as="date" format="dm"> ${startDate.format("Do MMM")} </say-as> at <say-as interpret-as="time" format="hms12"> ${startDate.format("h:mma")} </say-as> Is that okay for you?</speak>`);
+            const dateCalendar = startDate.calendar(null, {
+                sameDay: '[Today]',
+                nextDay: '[Tomorrow]',
+                nextWeek: 'dddd',
+                lastDay: '[Yesterday]',
+                lastWeek: '[Last] dddd',
+                sameElse: '[FullDate]'
+            });
+
+            let speechConv = `<speak>There is an appointment available with ${response.data[0].resources[0].name} <say-as interpret-as="date" format="dm"> ${startDate.format("Do MMM")} </say-as> at <say-as interpret-as="time" format="hms12"> ${startDate.format("h:mma")} </say-as> Is that okay for you?</speak>`
+            const textConv = `There is an appointment available with ${response.data[0].resources[0].name} the ${startDate.format("Do of MMMM")} at ${startDate.format("h:mma")}. Is that okay for you?`
+
+            if (dateCalendar !== 'FullDate') {
+                speechConv = `<speak>There is an appointment available with ${response.data[0].resources[0].name} ${dateCalendar} at <say-as interpret-as="time" format="hms12"> ${startDate.format("h:mma")} </say-as> Is that okay for you?</speak>`
+            }
+
+            conv.add(new SimpleResponse({
+                speech: speechConv,
+                text: textConv
+            }))
+
+            return conv.ask(new Table({
+                title: 'Barber Appointment',
+                subtitle: appointmentType,
+                dividers: true,
+                columns: ['Barber', 'Date', 'Time'],
+                rows: [
+                    [data[0].resources[0].name, startDate.format("Do MMMM"), startDate.format("h:mma")],
+                ],
+            }))
+
         } else if (appointmentType.toLowerCase() === "haircut") {
             return conv.close('Sorry, bookings for haircut are still not implemented. Please try again later');
         } else {
