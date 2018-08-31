@@ -30,6 +30,14 @@ app.intent('Request an appointment', async (conv, {appointmentType, appointmentD
     console.log(appointmentDate)
     console.log(appointmentTime)
     if (conv.body.queryResult.allRequiredParamsPresent) {
+        let parsedDate = moment.parseZone(appointmentDate)
+        let parsedTime = moment.parseZone(appointmentTime)
+
+        parsedDate.hour(parsedTime.hour())
+        parsedDate.minute(parsedTime.minute())
+
+        const endDate = parsedDate.clone().endOf('day')
+
         if (appointmentType.toLowerCase() === "haircut and beard") {
             const response = await timekit.fetchAvailability({
                 mode: "roundrobin_random",
@@ -38,19 +46,16 @@ app.intent('Request an appointment', async (conv, {appointmentType, appointmentD
                     "8563d819-2991-4f52-b2db-f450f143836f"
                 ],
                 length: "1 hours",
-                from: appointmentDate,
-                to: "2018-08-31T16:00:00+02:00",
+                from: parsedDate.format(),
+                to: endDate.format(),
                 timeslot_increments: "15 minutes",
                 output_timezone: "Europe/Madrid"
             });
 
             const data: Array<any> = response.data;
-            console.log(`el primere start es: ${data[0].start}`);
-            console.log(`el nombre es ${data[0].resources[0].name}`);
-            const dateUnix = Date.parse(data[0].start);
-            const inputDateString: string = appointmentDate;
-            const date = new Date(dateUnix);
-            return conv.ask(`There is an appointment available with ${response.data[0].resources[0].name} at ${date.getHours()} hours and ${date.getMinutes()}. Is that okay for you?`);
+            const startDate = moment.parseZone(data[0].start)
+
+            return conv.ask(`<speak>There is an appointment available with ${response.data[0].resources[0].name} <say-as interpret-as="date" format="dm"> ${startDate.format("Do MMM")} </say-as> at <say-as interpret-as="time" format="hms12"> ${startDate.format("h:mma")} </say-as> Is that okay for you?</speak>`);
         } else if (appointmentType.toLowerCase() === "haircut") {
             return conv.close('Sorry, bookings for haircut are still not implemented. Please try again later');
         } else {
@@ -68,7 +73,7 @@ app.intent('Request an appointment', async (conv, {appointmentType, appointmentD
             if (conv.surface.capabilities.has('actions.capability.SCREEN_OUTPUT')) {
                 return conv.ask(screenQuestion, new Suggestions(['Haircut', 'Beard', 'Haircut and beard']));
             } else {
-                const speakerQuestion = `<speak><p>` + screenQuestion + `</p> <p>Haircut, beard service, or both</p>`;
+                const speakerQuestion = `<speak><p>` + screenQuestion + `</p> <p>Haircut, beard service, or both</p></speak>`;
                 return conv.ask(speakerQuestion);
             }
         } else if (!appointmentDate || !appointmentTime) {
